@@ -33,7 +33,7 @@ php artisan migrate --seed
 php artisan serve --port=8001
 ```
 
-Check it is up: <http://localhost:8001/api/v1/health>.
+Check it is up: <http://localhost:8001/api/v1/health>, and open the viewer at <http://localhost:8001/viewer>.
 
 Port **8001** keeps it clear of Telemed on 8000. The bearer token is
 `CHIS_API_TOKEN` in `.env` (`chis-local-dev-token` by default — a local-development
@@ -41,6 +41,33 @@ value only; set a long random one anywhere else, and the same value as
 `CHIS_TOKEN` in Telemed's `.env`).
 
 Reset to a clean fixture at any time with `php artisan migrate:fresh --seed`.
+
+## Viewer and patient records (for presenting)
+
+Two read-only-from-Telemed pages for the demo, at <http://localhost:8001/viewer>:
+
+- **Received encounters** — every summary Telemed has sent, newest first. The page
+  refreshes itself every 5 seconds and marks anything from the last 2 minutes
+  **NEW**, so a summary appears on screen moments after a consultation is completed
+  in Telemed. Click a reference for the full summary and the raw JSON.
+- **Patient records** — the CHIS records Telemed reads. **+ Add patient record** /
+  **Edit** simulate clinic staff entering data into CHIS. To link a record to a
+  Telemed patient, use the same CLSU ID **and** the same first and last name as
+  their Telemed account; Telemed refuses to show a record whose name doesn't match.
+  The CLSU ID can't be changed after creation. Encounters can't be created or edited
+  here — they only ever arrive from Telemed through the API.
+
+These pages show medical data, so they're **off by default**:
+
+| Setting | Effect |
+|---|---|
+| `CHIS_VIEWER_ENABLED=false` (default) | Pages return 404 |
+| `CHIS_VIEWER_ENABLED=true`, `APP_ENV=local` | Pages open (no login) |
+| `CHIS_VIEWER_ENABLED=true`, not local, no `CHIS_VIEWER_PASSWORD` | Still 404 |
+| `CHIS_VIEWER_ENABLED=true` + `CHIS_VIEWER_PASSWORD=…` | HTTP Basic login (any username) |
+
+`.env.example` enables it for local use. Never enable it on a shared server
+without a password. The API under `/api/v1` is unaffected by these settings.
 
 ## Seed patients
 
