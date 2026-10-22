@@ -91,7 +91,9 @@ class StoreEncounterRequest extends FormRequest
             'clinical.recommendations' => ['required', 'string', 'max:10000'],
 
             'follow_up' => ['required', 'array'],
-            'follow_up.required' => ['required', 'boolean'],
+            // null = "not recorded": the sender does not capture follow-up intent,
+            // and false would wrongly tell a clinician none is needed.
+            'follow_up.required' => ['present', 'nullable', 'boolean'],
             'follow_up.date' => ['present', 'nullable', 'date_format:Y-m-d'],
 
             'prescription' => ['required', 'array'],

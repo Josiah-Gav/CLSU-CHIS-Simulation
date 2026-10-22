@@ -124,6 +124,25 @@ class EncounterSubmissionTest extends ApiTestCase
     }
 
     #[Test]
+    public function follow_up_not_recorded_is_accepted_as_null(): void
+    {
+        $this->api('POST', 'encounters', $this->encounterPayload([
+            'follow_up' => ['required' => null, 'date' => null],
+        ]))->assertCreated();
+    }
+
+    #[Test]
+    public function follow_up_required_must_still_be_present(): void
+    {
+        $payload = $this->encounterPayload();
+        unset($payload['follow_up']['required']);
+
+        $this->api('POST', 'encounters', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['follow_up.required']);
+    }
+
+    #[Test]
     public function no_prescription_is_accepted_when_the_file_fields_are_null(): void
     {
         $this->api('POST', 'encounters', $this->encounterPayload([

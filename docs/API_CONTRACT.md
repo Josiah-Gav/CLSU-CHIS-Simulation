@@ -228,7 +228,7 @@ can no longer be edited in Telemed, so a summary never changes after it is sent.
     "recommendations": "Return if fever exceeds 38.5 °C or breathing worsens."
   },
   "follow_up": {
-    "required": false,
+    "required": null,
     "date": null
   },
   "prescription": {
@@ -269,8 +269,8 @@ can no longer be edited in Telemed, so a summary never changes after it is sent.
 | `clinical.assessment` | string ≤ 10000 | yes | |
 | `clinical.plan` | string ≤ 10000 | yes | |
 | `clinical.recommendations` | string ≤ 10000 | yes | |
-| `follow_up.required` | boolean | yes | |
-| `follow_up.date` | date \| null | yes | |
+| `follow_up.required` | boolean \| null | yes | `null` = **not recorded** by the sender. Never treat it as "no follow-up needed". Telemed v1 does not record follow-up intent at completion, so it always sends `null` |
+| `follow_up.date` | date \| null | yes | Null when not recorded |
 | `prescription.attached` | boolean | yes | |
 | `prescription.file_name` | string ≤ 255 \| null | yes | Null when `attached` is false |
 | `prescription.mime_type` | string ≤ 100 \| null | yes | Null when `attached` is false |
