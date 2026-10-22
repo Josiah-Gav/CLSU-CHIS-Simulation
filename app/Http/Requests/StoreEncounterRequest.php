@@ -49,8 +49,13 @@ class StoreEncounterRequest extends FormRequest
             'telemed_encounter_id' => ['required', 'integer', 'min:1'],
             'telemed_request_id' => ['required', 'integer', 'min:1'],
 
-            'consent' => ['required', 'array'],
-            'consent.data_sharing_consented_at' => ['required', 'date', 'before_or_equal:now'],
+            // Why Telemed may send this summary. Omitted = "consent" (the original
+            // v1.0 rule), so senders built before this field existed keep working.
+            // "medical_treatment" (RA 10173 Sec. 13, same institution) needs no
+            // consent object; "consent" needs one with its timestamp.
+            'lawful_basis' => ['sometimes', 'string', 'in:consent,medical_treatment'],
+            'consent' => ['required_unless:lawful_basis,medical_treatment', 'nullable', 'array'],
+            'consent.data_sharing_consented_at' => ['required_with:consent', 'date', 'before_or_equal:now'],
 
             'patient' => ['required', 'array'],
             'patient.clsu_id' => ['required', 'string', 'max:50'],

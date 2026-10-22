@@ -124,6 +124,46 @@ class EncounterSubmissionTest extends ApiTestCase
     }
 
     #[Test]
+    public function medical_treatment_basis_needs_no_consent(): void
+    {
+        $this->api('POST', 'encounters', $this->encounterPayload([
+            'lawful_basis' => 'medical_treatment',
+            'consent' => null,
+        ]))->assertCreated();
+
+        $payload = $this->encounterPayload(['telemed_encounter_id' => 124, 'lawful_basis' => 'medical_treatment']);
+        unset($payload['consent']);
+
+        $this->api('POST', 'encounters', $payload)->assertCreated();
+    }
+
+    #[Test]
+    public function medical_treatment_basis_still_validates_a_consent_object_if_one_is_sent(): void
+    {
+        $this->api('POST', 'encounters', $this->encounterPayload([
+            'lawful_basis' => 'medical_treatment',
+            'consent' => ['data_sharing_consented_at' => '2099-01-01T00:00:00+08:00'],
+        ]))->assertUnprocessable()->assertJsonValidationErrors(['consent.data_sharing_consented_at']);
+    }
+
+    #[Test]
+    public function consent_basis_or_no_basis_still_requires_consent(): void
+    {
+        $this->api('POST', 'encounters', $this->encounterPayload(['lawful_basis' => 'consent', 'consent' => null]))
+            ->assertUnprocessable()->assertJsonValidationErrors(['consent']);
+
+        // Senders built before lawful_basis existed: unchanged behaviour.
+        $this->api('POST', 'encounters', $this->encounterPayload())->assertCreated();
+    }
+
+    #[Test]
+    public function an_unknown_lawful_basis_is_rejected(): void
+    {
+        $this->api('POST', 'encounters', $this->encounterPayload(['lawful_basis' => 'because']))
+            ->assertUnprocessable()->assertJsonValidationErrors(['lawful_basis']);
+    }
+
+    #[Test]
     public function follow_up_not_recorded_is_accepted_as_null(): void
     {
         $this->api('POST', 'encounters', $this->encounterPayload([

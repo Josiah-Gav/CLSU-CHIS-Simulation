@@ -115,9 +115,9 @@ Returns one patient's identity and medical profile.
   `404 PATIENT_NOT_FOUND` if the ID is not on record. Format validation belongs
   at the point of entry (Telemed registration), not here, so an ID scheme this
   list does not know about (e.g. faculty) is never locked out by CHIS.
-- **Telemed only calls this for a patient who has given CHIS data-sharing
-  consent.** CHIS does not enforce consent on lookups — it cannot see it — so
-  Telemed is responsible.
+- **Who may look a patient up is Telemed's responsibility** (only the physician
+  assigned to the consultation, with an identity check and an audit entry). CHIS
+  cannot see who is asking, so it does not enforce this itself.
 
 **200 OK**
 ```json
@@ -194,9 +194,8 @@ can no longer be edited in Telemed, so a summary never changes after it is sent.
   "schema_version": "1.0",
   "telemed_encounter_id": 123,
   "telemed_request_id": 456,
-  "consent": {
-    "data_sharing_consented_at": "2026-10-01T09:12:00+08:00"
-  },
+  "lawful_basis": "medical_treatment",
+  "consent": null,
   "patient": {
     "clsu_id": "23-0001",
     "first_name": "Juan",
@@ -246,7 +245,9 @@ can no longer be edited in Telemed, so a summary never changes after it is sent.
 | `schema_version` | string | yes | Must be `"1.0"` |
 | `telemed_encounter_id` | integer ≥ 1 | yes | Telemed `consultations.id`. **Idempotency key.** |
 | `telemed_request_id` | integer ≥ 1 | yes | Telemed `consultation_requests.request_id` |
-| `consent.data_sharing_consented_at` | timestamp | yes | When the patient consented. Not in the future. |
+| `lawful_basis` | `consent` \| `medical_treatment` | no | Why Telemed may share this summary — see *Lawful basis* below. Omitted = `consent` (the original v1.0 rule). |
+| `consent` | object \| null | when the basis is `consent` | May be `null` (or omitted) when `lawful_basis` is `medical_treatment` |
+| `consent.data_sharing_consented_at` | timestamp | when `consent` is an object | When the patient consented. Not in the future. |
 | `patient.clsu_id` | string ≤ 50 | yes | Must exist in CHIS, else `404 PATIENT_NOT_FOUND` |
 | `patient.first_name`, `patient.last_name` | string ≤ 255 | yes | Recorded as sent, for audit |
 | `physician.telemed_user_id` | integer ≥ 1 | yes | |
@@ -279,6 +280,23 @@ can no longer be edited in Telemed, so a summary never changes after it is sent.
 (assessment/plan/recommendations accept up to 10,000 characters there; profile
 names up to 255; custom symptom names are free text), so a summary is never
 refused, or clinically truncated, because of a limit this contract invented.
+
+### Lawful basis
+
+Health data is sensitive personal information under the Data Privacy Act
+(RA 10173). Section 13 allows processing it without consent when it is
+*necessary for medical treatment, carried out by a medical practitioner or
+medical institution, with adequate protection*. Telemed and CHIS both belong to
+CLSU, and the summary is kept for the patient's continuing care, so Telemed sends
+every completed consultation under **`"lawful_basis": "medical_treatment"`** and
+shows patients a privacy notice instead of asking for consent. (A consent that
+the patient could not actually refuse — because CLSU requires every completed
+consultation to reach CHIS — would not be valid consent.)
+
+`"lawful_basis": "consent"`, or omitting the field, keeps the original rule: a
+`consent` object with its timestamp is required. CHIS records whichever basis the
+sender declares; it cannot verify it. This is a design decision for the capstone,
+pending confirmation by the University's Data Protection Officer.
 
 ### What is deliberately **not** sent (data minimisation)
 

@@ -25,7 +25,14 @@
             <dl>
                 <dt>Name</dt><dd>{{ data_get($p, 'patient.first_name') }} {{ data_get($p, 'patient.last_name') }}</dd>
                 <dt>CLSU ID</dt><dd>{{ data_get($p, 'patient.clsu_id') }}</dd>
-                <dt>Consented</dt><dd>{{ $when(data_get($p, 'consent.data_sharing_consented_at')) }}</dd>
+                <dt>Shared under</dt>
+                <dd>
+                    @if (data_get($p, 'lawful_basis') === 'medical_treatment')
+                        Medical treatment (CLSU record-keeping; no consent required)
+                    @else
+                        Patient consent given {{ $when(data_get($p, 'consent.data_sharing_consented_at')) }}
+                    @endif
+                </dd>
             </dl>
         </div>
         <div class="card">

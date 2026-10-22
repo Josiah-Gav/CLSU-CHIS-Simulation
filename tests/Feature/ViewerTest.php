@@ -128,9 +128,22 @@ class ViewerTest extends ApiTestCase
             ->assertSee('Acute upper respiratory tract infection')
             ->assertSee('Cough')
             ->assertSee('Oct 22, 2026 2:05 PM')
+            ->assertSee('Patient consent given')
             ->assertSee('Not recorded by Telemed')
             ->assertSee('file itself is not sent')
             ->assertSee('Raw JSON exactly as Telemed sent it');
+    }
+
+    #[Test]
+    public function the_viewer_shows_a_medical_treatment_basis(): void
+    {
+        $this->api('POST', 'encounters', $this->encounterPayload([
+            'lawful_basis' => 'medical_treatment', 'consent' => null,
+        ]))->assertCreated();
+
+        $this->get('/viewer/encounters/ENC-'.now()->year.'-000001')
+            ->assertOk()
+            ->assertSee('Medical treatment (CLSU record-keeping; no consent required)');
     }
 
     #[Test]
