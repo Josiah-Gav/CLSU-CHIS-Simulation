@@ -97,8 +97,22 @@ No authentication. Used by Telemed to show whether CHIS is reachable.
 
 Returns one patient's identity and medical profile.
 
-- `clsu_id` is the CLSU student/employee ID number, max 50 characters,
-  URL-encoded by the client. Matching is exact after trimming, case-insensitive.
+- `clsu_id` is the CLSU ID number, max 50 characters, URL-encoded by the client.
+  Matching is an exact **string** comparison after trimming whitespace — it is
+  never parsed as a number, so leading zeros and the dash are significant
+  (`23-0001` ≠ `23-1`).
+- Known CLSU ID formats:
+
+  | Holder | Format | Example |
+  |---|---|---|
+  | Student | `YY-NNNN` | `23-0001` |
+  | Staff | `YY-NNNNNN` | `26-000001` |
+  | Long-tenured staff (older ID scheme) | `YYYY-NNNN` | `1996-0042` |
+
+  CHIS does **not** reject an ID for having an unrecognised format; it answers
+  `404 PATIENT_NOT_FOUND` if the ID is not on record. Format validation belongs
+  at the point of entry (Telemed registration), not here, so an ID scheme this
+  list does not know about (e.g. faculty) is never locked out by CHIS.
 - **Telemed only calls this for a patient who has given CHIS data-sharing
   consent.** CHIS does not enforce consent on lookups — it cannot see it — so
   Telemed is responsible.
@@ -107,7 +121,7 @@ Returns one patient's identity and medical profile.
 ```json
 {
   "data": {
-    "clsu_id": "21-0001",
+    "clsu_id": "23-0001",
     "first_name": "Juan",
     "middle_name": "Reyes",
     "last_name": "Dela Cruz",
@@ -182,7 +196,7 @@ can no longer be edited in Telemed, so a summary never changes after it is sent.
     "data_sharing_consented_at": "2026-10-01T09:12:00+08:00"
   },
   "patient": {
-    "clsu_id": "21-0001",
+    "clsu_id": "23-0001",
     "first_name": "Juan",
     "last_name": "Dela Cruz"
   },
@@ -280,7 +294,7 @@ Both return:
   "data": {
     "chis_encounter_id": "ENC-2026-000001",
     "telemed_encounter_id": 123,
-    "patient_clsu_id": "21-0001",
+    "patient_clsu_id": "23-0001",
     "received_at": "2026-10-22T14:05:03+08:00",
     "status": "recorded"
   }
@@ -318,7 +332,7 @@ data arrived.
     {
       "chis_encounter_id": "ENC-2026-000001",
       "telemed_encounter_id": 123,
-      "patient_clsu_id": "21-0001",
+      "patient_clsu_id": "23-0001",
       "encounter_type": "general",
       "diagnosis": "Acute upper respiratory tract infection",
       "completed_at": "2026-10-22T14:05:00+08:00",
@@ -345,9 +359,10 @@ Both repositories seed these identities so the demo works end to end. Telemed's
 
 | `clsu_id` | CHIS name | Telemed account | Expected Telemed result |
 |---|---|---|---|
-| `21-0001` | QA Patient | `patient.test1@clsu.edu.ph` (QA Patient) | Profile shown — full medical profile |
-| `21-0002` | QA Patient | `patient.test2@clsu.edu.ph` (QA Patient) | Profile shown — empty profile (all lists `[]`) |
-| `21-0003` | Maria Santos | Any Telemed account with a different name | **Identity mismatch** — not displayed |
+| `23-0001` | QA Patient (student) | `patient.test1@clsu.edu.ph` (QA Patient) | Profile shown — full medical profile |
+| `23-0002` | QA Patient (student) | `patient.test2@clsu.edu.ph` (QA Patient) | Profile shown — empty profile (all lists `[]`) |
+| `26-000001` | Maria Santos (staff) | Any Telemed account with a different name | **Identity mismatch** — not displayed |
+| `1996-0042` | Roberto Villanueva (long-tenured staff) | `patient.test3@clsu.edu.ph` (Roberto Villanueva), added to Telemed's seeder in phase 2 | Profile shown — exercises the `YYYY-NNNN` format |
 | *(any other)* | — | Any | `PATIENT_NOT_FOUND` — "No CHIS record" |
 
 Postman collection: `postman/CHIS-Simulation.postman_collection.json`, with the
