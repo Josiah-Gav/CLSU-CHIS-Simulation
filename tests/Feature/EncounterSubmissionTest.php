@@ -180,6 +180,22 @@ class EncounterSubmissionTest extends ApiTestCase
     }
 
     #[Test]
+    public function limits_match_telemeds_own_input_limits(): void
+    {
+        $this->api('POST', 'encounters', $this->encounterPayload([
+            'clinical.assessment' => str_repeat('a', 10000),
+            'patient.last_name' => str_repeat('b', 255),
+            'physician.name' => str_repeat('c', 255),
+            'presenting_complaint.symptoms.0.name' => str_repeat('d', 255),
+        ]))->assertCreated();
+
+        $this->api('POST', 'encounters', $this->encounterPayload([
+            'telemed_encounter_id' => 124,
+            'clinical.plan' => str_repeat('a', 10001),
+        ]))->assertUnprocessable()->assertJsonValidationErrors(['clinical.plan']);
+    }
+
+    #[Test]
     public function a_nullable_field_that_is_omitted_rather_than_null_is_rejected(): void
     {
         $payload = $this->encounterPayload();

@@ -248,9 +248,9 @@ can no longer be edited in Telemed, so a summary never changes after it is sent.
 | `telemed_request_id` | integer ≥ 1 | yes | Telemed `consultation_requests.request_id` |
 | `consent.data_sharing_consented_at` | timestamp | yes | When the patient consented. Not in the future. |
 | `patient.clsu_id` | string ≤ 50 | yes | Must exist in CHIS, else `404 PATIENT_NOT_FOUND` |
-| `patient.first_name`, `patient.last_name` | string ≤ 100 | yes | Recorded as sent, for audit |
+| `patient.first_name`, `patient.last_name` | string ≤ 255 | yes | Recorded as sent, for audit |
 | `physician.telemed_user_id` | integer ≥ 1 | yes | |
-| `physician.name` | string ≤ 200 | yes | |
+| `physician.name` | string ≤ 255 | yes | |
 | `physician.specialization` | string ≤ 100 \| null | yes | |
 | `encounter.type` | `general` \| `follow_up` | yes | |
 | `encounter.parent_telemed_encounter_id` | integer \| null | yes | Required (non-null) when `type` is `follow_up`, null otherwise |
@@ -259,21 +259,26 @@ can no longer be edited in Telemed, so a summary never changes after it is sent.
 | `encounter.completed_at` | timestamp | yes | Not before `started_at` |
 | `presenting_complaint.concern_category` | string ≤ 100 | yes | |
 | `presenting_complaint.symptoms` | array, ≥ 1 item | yes | |
-| `symptoms[].name` | string ≤ 100 | yes | |
+| `symptoms[].name` | string ≤ 255 | yes | |
 | `symptoms[].severity` | integer 1–4 | yes | Telemed's 1–4 scale |
 | `symptoms[].severity_label` | `very_mild` \| `mild` \| `moderate` \| `severe` | yes | Must match `severity`: 1 = very_mild, 2 = mild, 3 = moderate, 4 = severe (Telemed's labels) |
 | `symptoms[].onset_date` | date \| null | yes | |
 | `symptoms[].onset_time` | `HH:MM` \| null | yes | |
 | `presenting_complaint.additional_information` | string ≤ 1000 \| null | yes | |
-| `clinical.diagnosis` | string ≤ 5000 | yes | Telemed refuses to complete without it |
-| `clinical.assessment` | string ≤ 5000 | yes | |
-| `clinical.plan` | string ≤ 5000 | yes | |
-| `clinical.recommendations` | string ≤ 5000 | yes | |
+| `clinical.diagnosis` | string ≤ 10000 | yes | Telemed refuses to complete without it |
+| `clinical.assessment` | string ≤ 10000 | yes | |
+| `clinical.plan` | string ≤ 10000 | yes | |
+| `clinical.recommendations` | string ≤ 10000 | yes | |
 | `follow_up.required` | boolean | yes | |
 | `follow_up.date` | date \| null | yes | |
 | `prescription.attached` | boolean | yes | |
 | `prescription.file_name` | string ≤ 255 \| null | yes | Null when `attached` is false |
 | `prescription.mime_type` | string ≤ 100 \| null | yes | Null when `attached` is false |
+
+**Length limits** are at least as large as Telemed's own input limits
+(assessment/plan/recommendations accept up to 10,000 characters there; profile
+names up to 255; custom symptom names are free text), so a summary is never
+refused, or clinically truncated, because of a limit this contract invented.
 
 ### What is deliberately **not** sent (data minimisation)
 
