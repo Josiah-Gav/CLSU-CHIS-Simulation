@@ -67,15 +67,17 @@ Validation errors (`422`) add an `errors` object keyed by field path:
 
 | Status | `code` | Meaning | Client should retry? |
 |---|---|---|---|
-| 400 | `MALFORMED_JSON` | Body is not valid JSON | No |
+| 400 | `MALFORMED_JSON` | Body is not valid JSON, or is not a JSON object | No |
 | 401 | `UNAUTHENTICATED` | Missing or wrong bearer token | No — fix configuration |
 | 404 | `PATIENT_NOT_FOUND` | No patient with that `clsu_id` | No |
 | 404 | `ENCOUNTER_NOT_FOUND` | No encounter with that id | No |
 | 404 | `NOT_FOUND` | Unknown route | No |
+| 405 | `METHOD_NOT_ALLOWED` | HTTP method not supported on that endpoint | No |
 | 409 | `ENCOUNTER_CONFLICT` | Same `telemed_encounter_id` sent with different content | No — investigate |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | `POST` body sent without `Content-Type: application/json` | No |
 | 422 | `VALIDATION_FAILED` | Body failed validation | No |
 | 429 | `RATE_LIMITED` | More than 60 requests/minute per token; see `Retry-After` header | Yes, after `Retry-After` |
-| 5xx | `SERVER_ERROR` | CHIS failure | Yes, with backoff |
+| 5xx | `SERVER_ERROR` | CHIS failure. The message is always generic; details go to the CHIS log only | Yes, with backoff |
 
 **Retry rule for Telemed:** retry on timeouts, connection errors, `429` and `5xx`.
 Every other `4xx` is a permanent failure: record it and stop retrying.
@@ -312,6 +314,13 @@ keeps the original and rejects the new one.
 
 **404** `PATIENT_NOT_FOUND`, **422** `VALIDATION_FAILED`.
 
+**Order of checks:** body format (`400`/`415`) → validation (`422`) → existing
+`telemed_encounter_id` (`200` or `409`) → patient exists (`404`) → record (`201`).
+So a resend whose patient was since removed still gets its original receipt.
+
+Only the JSON body is validated; query-string parameters are ignored, so they
+can never stand in for a missing body field.
+
 ---
 
 ## 7. `GET /api/v1/encounters`
@@ -323,7 +332,7 @@ data arrived.
 |---|---|
 | `clsu_id` | Optional filter |
 | `page` | Default `1` |
-| `per_page` | Default `15`, max `100` |
+| `per_page` | Default `15`. Values outside 1–100 are clamped, not rejected |
 
 **200 OK**
 ```json
